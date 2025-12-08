@@ -3,10 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 import math
-
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_k, d_v, d_model, nb_heads):

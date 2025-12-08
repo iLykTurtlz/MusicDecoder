@@ -6,19 +6,19 @@ class EventTokenizer:
     """Encodes MIDI files to event-based representation.
     Decodes event vectors back to MIDI (with default tempo and time-signature)"""
     
-  
-    nb_waits = 2000
-    
+    end_token = -1
+    nb_waits = 1000
+
     #data augmentation parameters
     nb_transpose_above = 12
     nb_transpose_below = 12
 
     #for writing MIDI only
-    velocity = 127
+    velocity = 64
     write_tempo = 800000
 
-    def __init__(self, max_nb_voices) -> None:
-        self.nb_voices = max_nb_voices
+    def __init__(self, nb_voices) -> None:
+        self.nb_voices = nb_voices
         self.vocab_size = 0
  
         self.events = (
@@ -26,7 +26,7 @@ class EventTokenizer:
             ['wait_'+str(i) for i in range(EventTokenizer.nb_waits)] +
             ['note_on_'+str(i) for i in range(21, 109)] + #21-108 midi pitches for entire keyboard
             ['note_off_'+str(i) for i in range(21, 109)] + 
-            ['switch_to_voice_'+str(i) for i in range(max_nb_voices)]  #first track of metadata doesn't count
+            ['switch_to_voice_'+str(i) for i in range(nb_voices)]  #first track of metadata doesn't count
         )
         self.vocab_size = len(self.events)
 
@@ -119,8 +119,8 @@ class EventTokenizer:
         
 
     def midi_to_vector(self, mid: mido.midifiles.midifiles.MidiFile, augment: bool = False, return_mask: bool = False) -> np.ndarray:
-        if len(mid.tracks) - 1 > self.nb_voices:
-            raise Exception(f"Insufficient number of voices: tokenizer has {self.nb_voices}, MIDI has {len(mid.tracks) - 1}")
+        if len(mid.tracks) - 1 != self.nb_voices:
+            raise Exception(f"Inconsistent number of voices: tokenizer has {self.nb_voices}, MIDI has {len(mid.tracks) - 1}")
         #print(mid.__dict__.keys())
         #print(mid.__dir__())
         #merged = mid.merge_tracks(mid.tracks, skip_checks=True)
@@ -151,14 +151,7 @@ class EventTokenizer:
         clocks = [0 for _ in range(self.nb_voices)]
         #started = [False for _ in range(self.nb_voices)]
         global_clock = 0
-        if isinstance(vector, list):
-            events = vector
-        elif isinstance(vector, np.ndarray):
-            events = vector.flatten()
-        else:
-            raise Exception(f"Unsupported vector type: {type(vector)}")
-
-        for event_code in events:
+        for event_code in vector.flatten():
             event = self.inv_event_map[event_code]
             if event.startswith("e"):
                 for track in tracks:

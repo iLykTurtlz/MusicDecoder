@@ -9,7 +9,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
 
-BATCH_SIZE=4
+BATCH_SIZE=8
 EPOCHS=5000
 
 # #model = Decoder(20_000, 1024, 16, 64, 4, 2, 0.1)
@@ -122,10 +122,10 @@ def train(model, criterion, optimizer, train_loader, epochs):
 # model = Decoder(d_k, d_k, d_model, nb_heads, nb_layers, dropout_proba, max_len, vocab_size)
 
 init_args = {
-   "d_k":16, 
-   "d_v":16, 
-   "d_model":128, 
-   "nb_heads":4, 
+   "d_k":256, 
+   "d_v":256, 
+   "d_model":256, 
+   "nb_heads":8, 
    "nb_layers":2, 
    "dropout_proba":0.1, 
    "max_len":max_length, 

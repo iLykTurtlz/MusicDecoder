@@ -9,8 +9,6 @@ import os
 from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
 
-BATCH_SIZE=4
-EPOCHS=5000
 
 # #model = Decoder(20_000, 1024, 16, 64, 4, 2, 0.1)
 # vocab_size=20_000
@@ -39,17 +37,12 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 # y = model(x_t, mask_t)
 # ic(y.shape)
 
-tok = EventTokenizer(3)
+tok = EventTokenizer(2)
 vocab_size = tok.vocab_size
 
 data = []
 
-for filename in os.scandir("/datasets/pjarski/BachTwoPartInventions/"):
-    if filename.is_file():
-        songs = tok.file_to_vector(filename, augment=True, return_mask=False)
-        data += songs
-
-for filename in os.scandir("/datasets/pjarski/BachThreePartInventions/"):
+for filename in os.scandir("../BachTwoPartInventions/"):
     if filename.is_file():
         songs = tok.file_to_vector(filename, augment=True, return_mask=False)
         data += songs
@@ -83,7 +76,7 @@ class BachDataset(Dataset):
 train_loader = DataLoader(
     BachDataset(data),
     shuffle=True,
-    batch_size=BATCH_SIZE,
+    batch_size=32,
     collate_fn=collate_fn
 )
 
@@ -121,68 +114,18 @@ def train(model, criterion, optimizer, train_loader, epochs):
 
 # model = Decoder(d_k, d_k, d_model, nb_heads, nb_layers, dropout_proba, max_len, vocab_size)
 
-init_args = {
-   "d_k":16, 
-   "d_v":16, 
-   "d_model":128, 
-   "nb_heads":4, 
-   "nb_layers":2, 
-   "dropout_proba":0.1, 
-   "max_len":max_length, 
-   "vocab_size":vocab_size,
-}
-
-
-model = Decoder(**init_args)
-
-
-
-
-
-#model = Decoder(d_k=16, d_v=16, d_model=64, nb_heads=4, nb_layers=2, dropout_proba=0.1, max_len=max_length, vocab_size=vocab_size)
+model = Decoder(d_k=16, d_v=16, d_model=64, nb_heads=4, nb_layers=2, dropout_proba=0.1, max_len=max_length, vocab_size=vocab_size)
 model.to(device)
 
 criterion = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = torch.optim.Adam(model.parameters())
 
-train_losses = train(model, criterion, optimizer, train_loader, epochs=EPOCHS)
+train_losses = train(model, criterion, optimizer, train_loader, epochs=1)
 
 model.eval()
 
-current_time = datetime.now()
-datetime_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
-
-save_path = f"/datasets/pjarski/model_with_args_{datetime_str}.pth"
-
-# Save the state dictionary and initialization arguments
-torch.save({
-    'model_state_dict': model.state_dict(),
-    'init_args': init_args
-}, save_path)
-
-'''
-Load later:
-
-# Define the path to load the model
-load_path = "model_with_args.pth"
-
-# Load the checkpoint
-checkpoint = torch.load(load_path)
-
-# Extract the initialization arguments and state dictionary
-init_args = checkpoint['init_args']
-model_state_dict = checkpoint['model_state_dict']
-
-# Reinitialize the model with the saved arguments
-model = MyModel(**init_args)
-
-# Load the saved state dictionary into the model
-model.load_state_dict(model_state_dict)
-
-'''
-
-prompt = torch.tensor([[0]]).to(device)
-mask = torch.tensor([[1]]).to(device)
+prompt = torch.tensor([[0, 62, 1041]])
+mask = torch.tensor([[1,1,1]])
 
 for _ in range(100):
     outputs = model(prompt, mask)
@@ -193,8 +136,7 @@ for _ in range(100):
     if prediction == 1: #end token
         break
 
-prompt = np.array(prompt)
-tok.vector_to_midi(prompt, f"/datasets/pjarski/test_gen_{datetime_str}.mid")
+print(prompt)
 
 
 
